@@ -10,57 +10,296 @@
 		A description of the file.
 #>
 
-$OrgName = Read-Host "Enter Organization or Application Name"
-$OrgName = $OrgName.Replace(" ", "")
-Write-Verbose "Storing $OrgName"
+<#
+	.SYNOPSIS
+		Store credentials securely in the registry
 
-If (-not (Test-Path "HKCU:\Software\$OrgName\Credentials"))
+	.DESCRIPTION
+
+		To retrieve this credential, you must be logged in as the current user and copy/paste this 
+		into the credential area of your PowerShell script, referencing your credential as $credential 
+
+		$secureCredUserName = Get-ItemProperty -Path HKCU:\Software\SecureCredentials\$appName\$credentialName | Select-Object -ExpandProperty UserName
+		$secureCredPassword = Get-ItemProperty -Path HKCU:\Software\SecureCredentials\$appName\$credentialName | Select-Object -ExpandProperty Password
+		$securePassword = ConvertTo-SecureString $secureCredPassword
+		$credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $secureCredUserName, $securePassword
+
+		or use Get-SecureCredential
+
+#>
+function Add-SecureCredential
 {
-	Try
-	{
-		Write-Verbose "Credentials Path Not Found. Trying to create Key HKCU:\Software\$OrgName"
-		New-Item -Path "HKCU:\Software\$OrgName" -Name "Credentials" -Force -ErrorAction Stop
-		Write-Verbose "Created Key HKCU:\Software\$OrgName"
-	}
-	Catch
-	{
-		Write-Error "Unable to create path. Exiting script"
-	}
-}
-
-$secureCredential = Get-Credential -Message "Enter service account credential in DOMAIN\Username or Username@Domain.com format."
-$credentialName = Read-Host "Enter a name for this credential"
-$securePasswordString = $secureCredential.Password | ConvertFrom-SecureString
-$userNameString = $secureCredential.Username
-
-$regpath = "HKCU:\Software\$OrgName\Credentials\$credentialName"
-
-Write-Verbose "Storing credential $usernameString under $regpath."
-
-try
-{
-	New-Item -Path $regpath -ErrorAction Stop
+	[CmdletBinding()]
+	param (
+		
+		[Parameter(
+			Position = 0,
+		 	ValuefromPipelineByPropertyName = $true,
+			Mandatory = $true,
+			HelpMessage = 'Type the name under which you wish to store these credentials'
+		)]
+		[System.String]$Name,
+		
+		[Parameter(
+			Position = 1,
+			ValuefromPipelineByPropertyName = $true,
+			Mandatory = $false
+		)]
+		[System.String]$AppName,
+		
+		[Parameter(
+			Position = 2,
+			ValuefromPipelineByPropertyName = $true,
+			ParameterSetName = "NoCredObject",
+			Mandatory = $true
+			
+		)]
+		[System.String]$Username,
+		
+		[Parameter(
+			Position = 3,
+			ValuefromPipelineByPropertyName = $true,
+			ParameterSetName = "NoCredObject",
+			Mandatory = $true
+		)]
+		[System.String]$Password,
+		
+		[Parameter(
+				   Position = 4,
+				   ValuefromPipelineByPropertyName = $true,
+				   ValueFromPipeline = $true,
+				   ParameterSetName = "CredObjectPresent"
+		)]
+		[System.Management.Automation.PSCredential]$Credential
+	)
 	
-	$params = @{
-		'Path' = $regpath
-		'PropertyType' = 'String'
-		'ErrorAction' = 'Stop'
+	
+	BEGIN {
 	}
 	
-	New-ItemProperty @params -Name UserName -Value $userNameString
-	New-ItemProperty @params -Name Password -Value $securePasswordString
-}
-catch
-{
-	Write-Error "Could not create Credential in specified path"
+	PROCESS {
+
+		$pathRoot = "HKCU:\Software\SecureCredentials"
+		
+		#if appname not specified and there are apps already there give choice of existing apps
+		if (-not ($AppName))
+		{
+			if (Test-Path $pathRoot)
+			{
+				
+				$previousApps = (Get-ChildItem -Path $pathRoot).name
+				
+				if ($previousApps.count -gt 0)
+				{
+					$applist = @()
+					foreach ($app in $previousApps)
+					{
+						$shortName = $app.split('/') | Select-Object -Last 1
+						$applist += $shortName
+					}
+					$applist += 'Add new Application'
+				}
+				
+				$startNumber = 1
+				$number = $startNumber
+				
+				do
+				{
+					#give choice
+					write-host ""
+					
+					foreach ($choice in $applist)
+					{
+						Write-Host "$number. $choice"
+						
+						$number++
+					}
+					
+					Write-Host ""
+					Write-Host -nonewline "Type your choice and press Enter: "
+					$chosen = Read-Host
+					Write-Host ""
+					$ok = @($startNumber .. $number) -contains $chosen
+					if (-not $ok)
+					{
+						Write-Host "Invalid selection"
+					}
+				}
+				until ($ok)
+				
+				if ($number = $chosen)
+				{
+					Write-Host ""
+					Write-Host -nonewline "Type your Application name and press Enter: "
+					$AppName = Read-Host
+				}
+			} #if test path
+			else
+			{
+				Write-Host ""
+				Write-Host -nonewline "Type your Application name and press Enter: "
+				$AppName = Read-Host
+			}
+		} #if not appname
+
+				
+		$appName = $appName.Replace(" ", "")
+		Write-Verbose "Storing $appName"
+		
+		If (-not (Test-Path "$pathRoot\$appName"))
+		{
+			Try
+			{
+				Write-Verbose "Credentials Path Not Found. Trying to create Key $pathRoot\$appName"
+				New-Item -Path $pathRoot -Name $appName -Force -ErrorAction Stop
+				
+				$appPath = "$pathRoot\$appName"
+				
+				Write-Verbose "Created Key $pathRoot\$appName"
+			}
+			Catch
+			{
+				Write-Error "Unable to create path in registry. Exiting script"
+			}
+		}
+		
+		switch ($PsCmdlet.ParameterSetName)
+		{
+			'CredObjectPresent' {
+				$securePasswordString = $Credential.Password | ConvertFrom-SecureString
+				$userNameString = $Credential.Username
+				break }
+			'NoCredObject' {
+				$securePasswordString = $Password | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
+				$userNameString = $Username
+			}
+			
+		}
+		
+		$credPath = "$appPath\$Name"
+		
+		Write-Verbose "Storing credential $usernameString under $credPath."
+		
+		try
+		{
+			New-Item -Path $credPath -ErrorAction Stop | Out-Null
+			
+			$params = @{
+				'Path' = $credPath
+				'PropertyType' = 'String'
+				'ErrorAction' = 'Stop'
+			}
+			
+			New-ItemProperty @params -Name UserName -Value $userNameString -ErrorAction Stop | Out-Null
+			New-ItemProperty @params -Name Password -Value $securePasswordString -ErrorAction Stop | Out-Null
+		}
+		catch
+		{
+			Write-Error "Could not create Credential in specified path"
+		}
+		
+	}
+	END {
+	}
 }
 
 <#
-To retrieve this credential, you must be logged in as the current user and copy/paste this 
-into the credential area of your PowerShell script, referencing your credential as" '$credential'":"
-
-$secureCredUserName = Get-ItemProperty -Path HKCU:\Software\$OrgName\Credentials\$credentialName -Name UserName"
-$secureCredPassword = Get-ItemProperty -Path HKCU:\Software\$OrgName\Credentials\$credentialName -Name Password"
-$securePassword = ConvertTo-SecureString $secureCredPassword
-$credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $secureCredUserName, $securePassword
+	.SYNOPSIS
+		Gets credentials already stored in the local registry
 #>
+function Get-SecureCredential {
+	[CmdletBinding()]
+	param(
+		[Parameter(
+				   Position = 0,
+				   ValuefromPipelineByPropertyName = $true
+		)]
+		[System.String]$Name,
+		[Parameter(
+				   Position = 1,
+				   ValuefromPipelineByPropertyName = $true
+		)]
+		[System.String]$AppName
+	)
+	
+	
+	BEGIN {
+	}
+	
+	PROCESS
+	{
+		
+		$pathRoot = 'HKCU:\Software\SecureCredentials'
+		
+		if ($appname -eq '' -or $Name -eq '')
+		{
+			$allCreds = Get-ChildItem -Path $pathRoot -Recurse
+			Write-Output $allCreds
+			break
+		}
+		
+		if (-not (Test-Path -Path $pathRoot\$AppName\$Name))
+		{
+			Write-Error "Credentials cannot be found at $pathRoot\$AppName\$Name"
+		}
+		
+		$secureCredUserName = Get-ItemProperty -Path $pathRoot\$AppName\$Name | Select-Object -ExpandProperty UserName
+		$secureCredPassword = Get-ItemProperty -Path $pathRoot\$AppName\$Name | Select-Object -ExpandProperty Password
+		$securePassword = ConvertTo-SecureString $secureCredPassword
+		$credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $secureCredUserName, $securePassword
+		
+		Write-Output $credential
+
+	}
+	
+	END {
+	}
+}
+
+<#
+	.SYNOPSIS
+		Removes credentials from the local registry
+#>
+function Remove-SecureCredential
+{
+	[CmdletBinding(
+		SupportsShouldProcess = $true,
+		ConfirmImpact = "High"
+	)]
+	
+	param (
+		[Parameter(
+			Position = 0,
+			ValuefromPipelineByPropertyName = $true,
+			Mandatory = $true
+		)]
+		[System.String]$Name,
+		[Parameter(
+			Position = 1,
+			ValuefromPipelineByPropertyName = $true,
+			Mandatory = $true
+		)]
+		[System.String]$AppName
+	)
+	
+	BEGIN{
+	}
+	
+	PROCESS
+	{
+		
+		$pathRoot = 'HKCU:\Software\SecureCredentials'
+		
+		if (-not (Test-Path -Path $pathRoot\$AppName\$Name))
+		{
+			Write-Error "Credentials cannot be found at $pathRoot\$AppName\$Name"
+			break
+		}
+		
+		Remove-Item -Path $pathRoot\$AppName\$Name
+		
+	}
+	
+	END{
+	}
+}
