@@ -168,10 +168,12 @@ function Add-SecureCredential
 			'CredObjectPresent' {
 				$securePasswordString = $Credential.Password | ConvertFrom-SecureString
 				$userNameString = $Credential.Username
-				break }
+				break
+			}
 			'NoCredObject' {
 				$securePasswordString = $Password | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
 				$userNameString = $Username
+				break
 			}
 			
 		}
@@ -190,8 +192,8 @@ function Add-SecureCredential
 				'ErrorAction' = 'Stop'
 			}
 			
-			New-ItemProperty @params -Name UserName -Value $userNameString -ErrorAction Stop | Out-Null
-			New-ItemProperty @params -Name Password -Value $securePasswordString -ErrorAction Stop | Out-Null
+			New-ItemProperty @params -Name UserName -Value $userNameString | Out-Null
+			New-ItemProperty @params -Name Password -Value $securePasswordString | Out-Null
 		}
 		catch
 		{
@@ -303,3 +305,5 @@ function Remove-SecureCredential
 	END{
 	}
 }
+
+Add-SecureCredential -AppName Atlantis -Name AD -Username jimm@atlantiscomputing.com -Password 5h-BEret
