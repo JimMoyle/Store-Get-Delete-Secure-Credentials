@@ -163,9 +163,7 @@ function Get-SecureCredential {
 		else
 		{
 			$list = Get-ChildItem $pathRoot | Select-Object @{ n = 'Name'; e = { $_.PSChildName } }
-			
 			Write-Output $list
-
 		}
 		
 	}
@@ -212,33 +210,3 @@ function Remove-SecureCredential
 	END{
 	}
 }
-
-Get-SecureCredential
-
-Add-SecureCredential -Name One -Username jim -PlainTextPassword moyle
-
-Add-SecureCredential Two jim moyle
-
-Add-SecureCredential -Name Three -Username jim -PlainTextPassword moyle
-
-$pass = 'moyle' | ConvertTo-SecureString -AsPlainText -Force
-
-Add-SecureCredential -Name Four -Username jim -Password $pass
-
-$Jim = Get-Credential
-
-$Jim | Add-SecureCredential -Name Five
-
-Get-SecureCredential
-
-Get-SecureCredential -Name Two
-
-Get-SecureCredential Three
-
-Remove-SecureCredential -Name One
-
-Remove-SecureCredential Two
-
-Remove-SecureCredential Three
-
-Get-SecureCredential | Remove-SecureCredential
