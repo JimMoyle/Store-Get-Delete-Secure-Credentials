@@ -94,7 +94,7 @@ function Add-SecureCredential
 					$applist = @()
 					foreach ($app in $previousApps)
 					{
-						$shortName = $app.split('/') | Select-Object -Last 1
+						$shortName = $app.split('\') | Select-Object -Last 1
 						$applist += $shortName
 					}
 					$applist += 'Add new Application'
@@ -127,7 +127,7 @@ function Add-SecureCredential
 				}
 				until ($ok)
 				
-				if ($number = $chosen)
+				if ($number -eq $chosen)
 				{
 					Write-Host ""
 					Write-Host -nonewline "Type your Application name and press Enter: "
@@ -306,4 +306,4 @@ function Remove-SecureCredential
 	}
 }
 
-Add-SecureCredential -AppName Atlantis -Name AD -Username jimm@atlantiscomputing.com -Password 5h-BEret
+Add-SecureCredential -Name Test01 -Username jimm@atlantiscomputing.com -Password blah
