@@ -43,34 +43,26 @@ function Add-SecureCredential
 		[Parameter(
 			Position = 1,
 			ValuefromPipelineByPropertyName = $true,
-			Mandatory = $false
-		)]
-		[System.String]$AppName,
-		
-		[Parameter(
-			Position = 2,
-			ValuefromPipelineByPropertyName = $true,
-			ParameterSetName = "NoCredObject",
 			Mandatory = $true
 			
 		)]
 		[System.String]$Username,
 		
 		[Parameter(
-			Position = 3,
+			Position = 2,
 			ValuefromPipelineByPropertyName = $true,
-			ParameterSetName = "NoCredObject",
+			ParameterSetName = "PlainText",
 			Mandatory = $true
 		)]
-		[System.String]$Password,
+		[System.String]$PlainTextPassword,
 		
 		[Parameter(
-				   Position = 4,
+				   Position = 2,
 				   ValuefromPipelineByPropertyName = $true,
-				   ValueFromPipeline = $true,
-				   ParameterSetName = "CredObjectPresent"
+				   ParameterSetName = "SecureString",
+				   Mandatory = $true
 		)]
-		[System.Management.Automation.PSCredential]$Credential
+		[System.Security.SecureString]$Password
 	)
 	
 	
@@ -78,107 +70,30 @@ function Add-SecureCredential
 	}
 	
 	PROCESS {
-
+		
 		$pathRoot = "HKCU:\Software\SecureCredentials"
 		
-		#if appname not specified and there are apps already there give choice of existing apps
-		if (-not ($AppName))
+		if (-not (Test-Path -Path $pathRoot))
 		{
-			if (Test-Path $pathRoot)
-			{
-				
-				$previousApps = (Get-ChildItem -Path $pathRoot).name
-				
-				if ($previousApps.count -gt 0)
-				{
-					$applist = @()
-					foreach ($app in $previousApps)
-					{
-						$shortName = $app.split('\') | Select-Object -Last 1
-						$applist += $shortName
-					}
-					$applist += 'Add new Application'
-				}
-				
-				$startNumber = 1
-				$number = $startNumber
-				
-				do
-				{
-					#give choice
-					write-host ""
-					
-					foreach ($choice in $applist)
-					{
-						Write-Host "$number. $choice"
-						
-						$number++
-					}
-					
-					Write-Host ""
-					Write-Host -nonewline "Type your choice and press Enter: "
-					$chosen = Read-Host
-					Write-Host ""
-					$ok = @($startNumber .. $number) -contains $chosen
-					if (-not $ok)
-					{
-						Write-Host "Invalid selection"
-					}
-				}
-				until ($ok)
-				
-				if ($number -eq $chosen)
-				{
-					Write-Host ""
-					Write-Host -nonewline "Type your Application name and press Enter: "
-					$AppName = Read-Host
-				}
-			} #if test path
-			else
-			{
-				Write-Host ""
-				Write-Host -nonewline "Type your Application name and press Enter: "
-				$AppName = Read-Host
-			}
-		} #if not appname
-
-				
-		$appName = $appName.Replace(" ", "")
-		Write-Verbose "Storing $appName"
-		
-		If (-not (Test-Path "$pathRoot\$appName"))
-		{
-			Try
-			{
-				Write-Verbose "Credentials Path Not Found. Trying to create Key $pathRoot\$appName"
-				New-Item -Path $pathRoot -Name $appName -Force -ErrorAction Stop
-				
-				$appPath = "$pathRoot\$appName"
-				
-				Write-Verbose "Created Key $pathRoot\$appName"
-			}
-			Catch
-			{
-				Write-Error "Unable to create path in registry. Exiting script"
-			}
+			New-Item -Path $pathRoot -ErrorAction Stop | Out-Null
 		}
-		
+							
 		switch ($PsCmdlet.ParameterSetName)
 		{
-			'CredObjectPresent' {
-				$securePasswordString = $Credential.Password | ConvertFrom-SecureString
-				$userNameString = $Credential.Username
+			'SecureString' {
+				$securePasswordString = $Password | ConvertFrom-SecureString
 				break
 			}
-			'NoCredObject' {
-				$securePasswordString = $Password | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
-				$userNameString = $Username
+			'PlainText' {
+				$securePasswordString = $PlainTextPassword | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
 				break
 			}
 			
 		}
 		
-		$credPath = "$appPath\$Name"
+		$userNameString = $Username
+		
+		$credPath = "$pathRoot\$Name"
 		
 		Write-Verbose "Storing credential $usernameString under $credPath."
 		
@@ -197,7 +112,7 @@ function Add-SecureCredential
 		}
 		catch
 		{
-			Write-Error "Could not create Credential in specified path"
+			Write-Error "Could not create Credential in $credPath."
 		}
 		
 	}
@@ -213,15 +128,11 @@ function Get-SecureCredential {
 	[CmdletBinding()]
 	param(
 		[Parameter(
-				   Position = 0,
-				   ValuefromPipelineByPropertyName = $true
+			Position = 0,
+			ValuefromPipelineByPropertyName = $true,
+			ValuefromPipeline = $true
 		)]
-		[System.String]$Name,
-		[Parameter(
-				   Position = 1,
-				   ValuefromPipelineByPropertyName = $true
-		)]
-		[System.String]$AppName
+		[System.String]$Name
 	)
 	
 	
@@ -233,25 +144,30 @@ function Get-SecureCredential {
 		
 		$pathRoot = 'HKCU:\Software\SecureCredentials'
 		
-		if ($appname -eq '' -or $Name -eq '')
+		if ($Name)
 		{
-			$allCreds = Get-ChildItem -Path $pathRoot -Recurse
-			Write-Output $allCreds
-			break
-		}
-		
-		if (-not (Test-Path -Path $pathRoot\$AppName\$Name))
-		{
-			Write-Error "Credentials cannot be found at $pathRoot\$AppName\$Name"
-		}
-		
-		$secureCredUserName = Get-ItemProperty -Path $pathRoot\$AppName\$Name | Select-Object -ExpandProperty UserName
-		$secureCredPassword = Get-ItemProperty -Path $pathRoot\$AppName\$Name | Select-Object -ExpandProperty Password
-		$securePassword = ConvertTo-SecureString $secureCredPassword
-		$credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $secureCredUserName, $securePassword
-		
-		Write-Output $credential
+			
+			if (-not (Test-Path -Path $pathRoot\$Name))
+			{
+				Write-Error "Credentials cannot be found at $pathRoot\$Name"
+			}
+			
+			$secureCredUserName = Get-ItemProperty -Path $pathRoot\$Name | Select-Object -ExpandProperty UserName
+			$secureCredPassword = Get-ItemProperty -Path $pathRoot\$Name | Select-Object -ExpandProperty Password
+			$securePassword = ConvertTo-SecureString $secureCredPassword
+			$credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $secureCredUserName, $securePassword
+			
+			Write-Output $credential
 
+		}
+		else
+		{
+			$list = Get-ChildItem $pathRoot | Select-Object @{ n = 'Name'; e = { $_.PSChildName } }
+			
+			Write-Output $list
+
+		}
+		
 	}
 	
 	END {
@@ -264,10 +180,7 @@ function Get-SecureCredential {
 #>
 function Remove-SecureCredential
 {
-	[CmdletBinding(
-		SupportsShouldProcess = $true,
-		ConfirmImpact = "High"
-	)]
+	[CmdletBinding()]
 	
 	param (
 		[Parameter(
@@ -275,13 +188,7 @@ function Remove-SecureCredential
 			ValuefromPipelineByPropertyName = $true,
 			Mandatory = $true
 		)]
-		[System.String]$Name,
-		[Parameter(
-			Position = 1,
-			ValuefromPipelineByPropertyName = $true,
-			Mandatory = $true
-		)]
-		[System.String]$AppName
+		[System.String]$Name
 	)
 	
 	BEGIN{
@@ -292,13 +199,13 @@ function Remove-SecureCredential
 		
 		$pathRoot = 'HKCU:\Software\SecureCredentials'
 		
-		if (-not (Test-Path -Path $pathRoot\$AppName\$Name))
+		if (-not (Test-Path -Path $pathRoot\$Name))
 		{
-			Write-Error "Credentials cannot be found at $pathRoot\$AppName\$Name"
+			Write-Error "$Name Credentials cannot be found at $pathRoot\$Name"
 			break
 		}
 		
-		Remove-Item -Path $pathRoot\$AppName\$Name
+		Remove-Item -Path $pathRoot\$Name
 		
 	}
 	
@@ -306,4 +213,32 @@ function Remove-SecureCredential
 	}
 }
 
-Add-SecureCredential -Name Test01 -Username jimm@atlantiscomputing.com -Password blah
+Get-SecureCredential
+
+Add-SecureCredential -Name One -Username jim -PlainTextPassword moyle
+
+Add-SecureCredential Two jim moyle
+
+Add-SecureCredential -Name Three -Username jim -PlainTextPassword moyle
+
+$pass = 'moyle' | ConvertTo-SecureString -AsPlainText -Force
+
+Add-SecureCredential -Name Four -Username jim -Password $pass
+
+$Jim = Get-Credential
+
+$Jim | Add-SecureCredential -Name Five
+
+Get-SecureCredential
+
+Get-SecureCredential -Name Two
+
+Get-SecureCredential Three
+
+Remove-SecureCredential -Name One
+
+Remove-SecureCredential Two
+
+Remove-SecureCredential Three
+
+Get-SecureCredential | Remove-SecureCredential
