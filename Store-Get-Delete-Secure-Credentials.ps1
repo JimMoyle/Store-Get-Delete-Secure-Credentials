@@ -3,7 +3,7 @@
 	===========================================================================
 	 Created on:   	15/12/2016 13:43
 	 Created by:   	Jim Moyle
-	 Github: https://github.com/JimMoyle/Hearthstone-Predictor
+	 Github: https://github.com/JimMoyle/Store-Get-Delete-Secure-Credentials
 	 Twitter: @jimmoyle
 	===========================================================================
 	.DESCRIPTION
@@ -16,19 +16,10 @@
 
 	.DESCRIPTION
 
-		To retrieve this credential, you must be logged in as the current user and copy/paste this 
-		into the credential area of your PowerShell script, referencing your credential as $credential 
-
-		$secureCredUserName = Get-ItemProperty -Path HKCU:\Software\SecureCredentials\$appName\$credentialName | Select-Object -ExpandProperty UserName
-		$secureCredPassword = Get-ItemProperty -Path HKCU:\Software\SecureCredentials\$appName\$credentialName | Select-Object -ExpandProperty Password
-		$securePassword = ConvertTo-SecureString $secureCredPassword
-		$credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $secureCredUserName, $securePassword
-
-		or use Get-SecureCredential
+		To retrieve this credential, you must be logged in as the current user and use Get-SecureCredential
 
 #>
-function Add-SecureCredential
-{
+function Add-SecureCredential{
 	[CmdletBinding()]
 	param (
 		
@@ -176,8 +167,7 @@ function Get-SecureCredential {
 	.SYNOPSIS
 		Removes credentials from the local registry
 #>
-function Remove-SecureCredential
-{
+function Remove-SecureCredential{
 	[CmdletBinding()]
 	
 	param (
