@@ -113,7 +113,7 @@ function Add-SecureCredential{
 
 <#
 	.SYNOPSIS
-		Gets credentials already stored in the local registry
+		Gets credentials already stored in the local registry under the local users account
 #>
 function Get-SecureCredential {
 	[CmdletBinding()]
@@ -154,7 +154,24 @@ function Get-SecureCredential {
 		else
 		{
 			$list = Get-ChildItem $pathRoot | Select-Object @{ n = 'Name'; e = { $_.PSChildName } }
-			Write-Output $list
+			
+			$credlist = @()
+			
+			foreach ($cred in $list.name)
+			{
+				$secureCredUserName = Get-ItemProperty -Path $pathRoot\$cred | Select-Object -ExpandProperty UserName
+				$secureCredPassword = Get-ItemProperty -Path $pathRoot\$cred | Select-Object -ExpandProperty Password
+				$securePassword = ConvertTo-SecureString $secureCredPassword
+				$credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $secureCredUserName, $securePassword
+				
+				$credWithName = $credential | Select-Object -Property @{ n = 'Name';  e= { $cred } }, UserName, Password
+				
+				
+				$credlist += $credWithName
+			}
+			
+			Write-Output $credlist
+			
 		}
 		
 	}
@@ -200,3 +217,7 @@ function Remove-SecureCredential{
 	END{
 	}
 }
+
+#Add-SecureCredential Test Jim Moyle
+
+Get-SecureCredential
