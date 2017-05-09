@@ -217,3 +217,7 @@ function Remove-SecureCredential
 	END{
 	}
 }
+
+#Add-SecureCredential Test Jim Moyle
+
+Get-SecureCredential
