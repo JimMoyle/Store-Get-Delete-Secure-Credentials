@@ -6,7 +6,7 @@ $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
 
 Import-Module -Force $PSScriptRoot\..\Store-Get-Delete-Secure-Credentials.ps1
 
-$existing = 3
+$existing = 0
 $user1 = 'Test1'
 $pass1 = 'password1'
 $user2 = 'Test2'
