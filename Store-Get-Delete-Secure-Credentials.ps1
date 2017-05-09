@@ -11,13 +11,14 @@
 #>
 <#
 	.SYNOPSIS
-		Store credentials securely in the registry
+		Store and retrieve credentials securely to and from the local registry
 
 	.DESCRIPTION
 
 		To retrieve this credential, you must be logged in as the current user and use Get-SecureCredential
 
 #>
+
 function Add-SecureCredential
 {
 	[CmdletBinding()]
