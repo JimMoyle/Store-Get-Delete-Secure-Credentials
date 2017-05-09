@@ -120,8 +120,7 @@ function Get-SecureCredential
 	param(
 		[Parameter(
 			Position = 0,
-			ValuefromPipelineByPropertyName = $true,
-			ValuefromPipeline = $true
+			ValuefromPipelineByPropertyName = $true
 		)]
 		[System.String]$Name
 	)
@@ -218,7 +217,3 @@ function Remove-SecureCredential
 	END{
 	}
 }
-
-#Add-SecureCredential Test Jim Moyle
-
-Get-SecureCredential
