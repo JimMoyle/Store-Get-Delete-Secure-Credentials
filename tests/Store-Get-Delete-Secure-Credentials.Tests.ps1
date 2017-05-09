@@ -78,7 +78,7 @@ Describe -Tag 'Remove' 'Remove-SecureCredential'{
     }
 
     It 'Removes Second Cred' {
-        Remove-SecureCredential -Name Two | Should Be $null
+        Get-SecureCredential -Name Two | Remove-SecureCredential | Should Be $null
     }
 
     It 'Removes Third Cred' {
