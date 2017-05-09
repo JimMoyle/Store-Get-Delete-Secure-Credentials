@@ -64,7 +64,7 @@ function Add-SecureCredential
 
 		$pathRoot = "HKCU:\Software\SecureCredentials"
 
-		if (-not (Test-Path -Path $pathRoot -ErrorAction SilentlyContinue))
+		if (-not (Test-Path -Path $pathRoot))
 		{
 			New-Item -Path $pathRoot -ErrorAction Stop | Out-Null
 		}
@@ -153,8 +153,9 @@ function Get-SecureCredential
 		}
 		else
 		{
-			$list = Get-ChildItem $pathRoot | Select-Object @{ n = 'Name'; e = { $_.PSChildName } }
-
+			if (Test-Path -Path $pathRoot){
+				$list = Get-ChildItem $pathRoot | Select-Object @{ n = 'Name'; e = { $_.PSChildName } }
+			}
 			$credlist = @()
 
 			foreach ($cred in $list.name)
