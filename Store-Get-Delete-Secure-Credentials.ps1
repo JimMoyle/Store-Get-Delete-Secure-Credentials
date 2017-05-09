@@ -9,7 +9,6 @@
 	.DESCRIPTION
 		A description of the file.
 #>
-
 <#
 	.SYNOPSIS
 		Store credentials securely in the registry
@@ -19,7 +18,8 @@
 		To retrieve this credential, you must be logged in as the current user and use Get-SecureCredential
 
 #>
-function Add-SecureCredential{
+function Add-SecureCredential
+{
 	[CmdletBinding()]
 	param (
 		
@@ -110,12 +110,12 @@ function Add-SecureCredential{
 	END {
 	}
 }
-
 <#
 	.SYNOPSIS
 		Gets credentials already stored in the local registry under the local users account
 #>
-function Get-SecureCredential {
+function Get-SecureCredential
+{
 	[CmdletBinding()]
 	param(
 		[Parameter(
@@ -179,12 +179,12 @@ function Get-SecureCredential {
 	END {
 	}
 }
-
 <#
 	.SYNOPSIS
 		Removes credentials from the local registry
 #>
-function Remove-SecureCredential{
+function Remove-SecureCredential
+{
 	[CmdletBinding()]
 	
 	param (
@@ -217,7 +217,3 @@ function Remove-SecureCredential{
 	END{
 	}
 }
-
-#Add-SecureCredential Test Jim Moyle
-
-Get-SecureCredential
