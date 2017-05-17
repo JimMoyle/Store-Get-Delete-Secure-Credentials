@@ -12,7 +12,6 @@
 <#
 	.SYNOPSIS
 		Store and retrieve credentials securely to and from the local registry
-		demo line
 
 	.DESCRIPTION
 
