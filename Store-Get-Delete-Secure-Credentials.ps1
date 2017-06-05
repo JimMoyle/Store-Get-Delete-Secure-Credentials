@@ -12,9 +12,6 @@
 <#
 	.SYNOPSIS
 		Store and retrieve credentials securely to and from the local registry
-		Demo text here
-		Demo text2
-		Demo text3
 	.DESCRIPTION
 
 		To retrieve this credential, you must be logged in as the current user and use Get-SecureCredential
