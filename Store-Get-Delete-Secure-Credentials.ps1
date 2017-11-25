@@ -21,6 +21,7 @@
 function Add-SecureCredential
 {
 	[CmdletBinding()]
+ 	[System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingPlainTextForPassword', '')]
 	param (
 
 		[Parameter(
