@@ -14,7 +14,7 @@ $pass2 = 'password2'
 $user3 = 'Test3'
 $pass3 = 'password3'
 
-Describe -Tag 'Add' 'Add-SecureCredential' {
+Describe 'Add-SecureCredential' {
 
     It "Adds plain text password creds" {
         Add-SecureCredential -Name One -Username $user1 -PlainTextPassword $pass1 | Should Be $null
@@ -33,7 +33,7 @@ Describe -Tag 'Add' 'Add-SecureCredential' {
     }
 }
 
-Describe -Tag 'Get' 'Get-SecureCredential'{
+Describe 'Get-SecureCredential'{
 
     It 'Gets All Credentials'{
         $result = Get-SecureCredential
@@ -71,7 +71,7 @@ Describe -Tag 'Get' 'Get-SecureCredential'{
     }
 }
 
-Describe -Tag 'Remove' 'Remove-SecureCredential'{
+Describe 'Remove-SecureCredential'{
 
     It 'Removes First Cred' {
         Remove-SecureCredential -Name One | Should Be $null

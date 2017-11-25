@@ -13,7 +13,7 @@
 	.SYNOPSIS
 		Store and retrieve credentials securely to and from the local registry
 	.DESCRIPTION
-
+		Test for Kevin
 		To retrieve this credential, you must be logged in as the current user and use Get-SecureCredential
 
 #>
